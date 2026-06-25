@@ -1,0 +1,9 @@
+*.zip
+dataset/
+outputs/
+uploads/
+models/
+*.pth
+__pycache__/
+venv/
+node_modules/
