@@ -2,7 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import "./App.css";
 
-const API = "https://whacky-subsidize-habitable.ngrok-free.dev";
+const API = "http://127.0.0.1:5000";
 
 export default function App() {
   const [file, setFile] = useState(null);
@@ -25,61 +25,61 @@ export default function App() {
   ];
 
   const analyze = async () => {
-    if (!file) return setStatus("Please upload a satellite image first.");
+  if (!file) return setStatus("Please upload a satellite image first.");
 
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-
-      setShowResults(false);
-      setResilience(null);
-      setRecommendation(null);
-      setSteps([]);
-
-      setStatus("Uploading satellite frame...");
-      setSteps(["Upload"]);
-      await axios.post(`${API}/upload`, fd);
-
-      setStatus("Extracting road network...");
-      setSteps(["Upload", "Road Extraction"]);
-      await axios.get(`${API}/predict?t=${Date.now()}`);
-
-      setStatus("Detecting critical road nodes...");
-      setSteps(["Upload", "Road Extraction", "Criticality"]);
-      await axios.get(`${API}/criticality?t=${Date.now()}`);
-
-      setStatus("Simulating disaster impact...");
-      setSteps(["Upload", "Road Extraction", "Criticality", "Simulation"]);
-      await axios.get(`${API}/simulate?t=${Date.now()}`);
-
-      setStatus("Planning emergency route...");
-      setSteps(["Upload", "Road Extraction", "Criticality", "Simulation", "Routing"]);
-      await axios.get(`${API}/route?t=${Date.now()}`);
-
-      setStatus("Calculating resilience score...");
-      setSteps(["Upload", "Road Extraction", "Criticality", "Simulation", "Routing", "Resilience"]);
-      await axios.get(`${API}/resilience?t=${Date.now()}`);
-
-      setStatus("Generating AI recommendations...");
-      setSteps(["Upload", "Road Extraction", "Criticality", "Simulation", "Routing", "Resilience", "Recommendation"]);
-      await axios.get(`${API}/recommendation?t=${Date.now()}`);
-
-      const res = await axios.get(`${API}/resilience-data?t=${Date.now()}`);
-      setResilience(res.data);
-
-      const rec = await axios.get(`${API}/outputs/recommendation.json?t=${Date.now()}`);
-      setRecommendation(rec.data);
-
-      const key = Date.now();
-      setRefreshKey(key);
-      setStatus("Mission analysis completed ✅");
-      setSteps(missionSteps);
-      setShowResults(true);
-    } catch (err) {
-      console.error("Pipeline error:", err);
-      setStatus("Pipeline error ❌ Check backend terminal");
-    }
+  const callAPI = async (name, url) => {
+    setStatus(`${name}...`);
+    console.log("Running:", name, url);
+    const response = await axios.get(url);
+    console.log(`${name} done`, response.data);
   };
+
+  try {
+    const fd = new FormData();
+    fd.append("file", file);
+
+    setShowResults(false);
+    setResilience(null);
+    setRecommendation(null);
+    setSteps([]);
+
+    setStatus("Uploading satellite frame...");
+    setSteps(["Upload"]);
+    await axios.post(`${API}/upload`, fd);
+
+    setSteps(["Upload", "Road Extraction"]);
+    await callAPI("Extracting roads", `${API}/predict?t=${Date.now()}`);
+
+    setSteps(["Upload", "Road Extraction", "Criticality"]);
+    await callAPI("Finding critical nodes", `${API}/criticality?t=${Date.now()}`);
+
+    setSteps(["Upload", "Road Extraction", "Criticality", "Simulation"]);
+    await callAPI("Running simulation", `${API}/simulate?t=${Date.now()}`);
+
+    setSteps(["Upload", "Road Extraction", "Criticality", "Simulation", "Routing"]);
+    await callAPI("Planning route", `${API}/route?t=${Date.now()}`);
+
+    setSteps(["Upload", "Road Extraction", "Criticality", "Simulation", "Routing", "Resilience"]);
+    await callAPI("Calculating resilience", `${API}/resilience?t=${Date.now()}`);
+
+    setSteps(["Upload", "Road Extraction", "Criticality", "Simulation", "Routing", "Resilience", "Recommendation"]);
+    await callAPI("Generating recommendation", `${API}/recommendation?t=${Date.now()}`);
+
+    const res = await axios.get(`${API}/resilience-data?t=${Date.now()}`);
+    setResilience(res.data);
+
+    const rec = await axios.get(`${API}/outputs/recommendation.json?t=${Date.now()}`);
+    setRecommendation(rec.data);
+
+    setRefreshKey(Date.now());
+    setStatus("Mission analysis completed ✅");
+    setSteps(missionSteps);
+    setShowResults(true);
+  } catch (err) {
+    console.error("FULL ERROR:", err);
+    setStatus(`Pipeline error ❌ ${err.message}`);
+  }
+};
 
   return (
     <main className="mission-page">
